@@ -41,66 +41,6 @@
 #define CNC_MAX_LIMITZ  PORTAbits.RA4
 #define CNC_MIN_LIMITZ  PORTAbits.RA5
 
-/*
- * 
- */
-/*
-void Step(uint8_t motor,unsigned long steps,uint8_t dir);
-
-int main(int argc, char** argv) {
-    PORTD = 0;
-    TRISD = 0;
-    
-    while(1){
-        if (CNC_EN)  CNC_EN=0;
-        else CNC_EN = 1;
-        __delay_ms(100);
-        
-        Step(1,20000,1);
-        //Step(2,300,0);
-        //Step(3,500,0);
-        Step(1,20000,0);
-        CNC_EN = 1;
-    }
-    
-    
-    return (EXIT_SUCCESS);
-}
-
-void Step(uint8_t motor,unsigned long steps,uint8_t dir){
-    
-    CNC_EN = 0;
-    unsigned long i=0;
-    if(motor==1){
-        CNC_DIRX = dir;
-        for(i=0;i<steps;i++){
-            __delay_us(40);
-            CNC_STEPX = 1;
-            __delay_us(20);
-            CNC_STEPX = 0;
-        }
-    }
-    else if(motor==2){
-        CNC_DIRY = dir;
-        for(i=0;i<steps;i++){
-            __delay_ms(10);
-            CNC_STEPY = 1;
-            __delay_ms(5);
-            CNC_STEPY = 0;
-        }    
-    }
-    else if(motor==3){
-        CNC_DIRX = dir;
-        for(i=0;i<steps;i++){
-            __delay_us(10);
-            CNC_STEPZ = 1;
-            __delay_us(5);
-            CNC_STEPZ = 0;
-        }    
-    }
-}
-*/
-
 typedef struct{
     signed long x;
     signed long y;
