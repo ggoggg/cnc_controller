@@ -4,6 +4,7 @@
  *
  * Created on January 4, 2019, 12:05 AM
  */
+#define _XTAL_FREQ 20000000
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -11,7 +12,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "lcd.h"
-#define _XTAL_FREQ 20000000
+#include "serial.h"
+
 
 
 
@@ -176,6 +178,10 @@ void main(void) {
     
     LCD_Init();  /*Initialize LCD to 5*8 matrix in 4-bit mode*/
     LCD_Clear();
+    
+    UART_Init(9600);
+    
+    UART_Write_Text("HELLO!!!!");
     
     LCD_String_xy(1,0,"HELLO"); /*Display string on 2nd row,1st location*/ 
     LCD_String_xy(2,0,"POS X: ");
