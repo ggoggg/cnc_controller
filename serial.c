@@ -1,9 +1,10 @@
 #include "serial.h"
 
-char UART_Init(const long int baudrate)
+int UART_Init(const long int baudrate)
 {
   unsigned int x;
   x = (_XTAL_FREQ - baudrate*64)/(baudrate*64);   //SPBRG for Low Baud Rate
+  BRGH = 0;
   if(x>255)                                       //If High Baud Rage Required
   {
     x = (_XTAL_FREQ - baudrate*16)/(baudrate*16); //SPBRG for High Baud Rate
@@ -12,13 +13,22 @@ char UART_Init(const long int baudrate)
   if(x<256)
   {
     SPBRG = x;                                    //Writing SPBRG Register
-    SYNC = 0;                                     //Setting Asynchronous Mode, ie UART
-    SPEN = 1;                                     //Enables Serial Port
-    TRISC7 = 1;                                   //As Prescribed in Datasheet
-    TRISC6 = 1;                                   //As Prescribed in Datasheet
-    CREN = 1;                                     //Enables Continuous Reception
-    TXEN = 1;                                     //Enables Transmission
-    return 1;                                     //Returns 1 to indicate Successful Completion
+    TRISC7 = 1; 
+    
+//    BRGH = 1;
+//    BRG16 = 1;
+//    SPBRG = 8;
+//    SPBRGH = 2;
+    SPEN = 1;
+    SYNC = 0;
+    RCIE = 0;
+    CREN = 1;
+    TXEN = 1;
+    RCSTA = 0;
+    RCSTAbits.CREN = 1;
+    RCSTAbits.SPEN = 1;
+    
+    return 1;                                  //Returns 1 to indicate Successful Completion
   }
   return 0;                                       //Returns 0 to indicate UART initialization failed
 }
@@ -56,6 +66,5 @@ void UART_Read_Text(char *Output, unsigned int length)
 {
   unsigned int i;
   for(int i=0;i<length;i++)
-  Output[i] = UART_Read();
+        Output[i] = UART_Read();
 }
-

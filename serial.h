@@ -26,6 +26,6 @@ char UART_Data_Ready();
 void UART_Write_Text(char *text);
 char UART_TX_Empty();
 void UART_Write(char data);
-char UART_Init(const long int baudrate);
+int UART_Init(const long int baudrate);
 
 #endif	/* SERIAL_H */
