@@ -56,19 +56,20 @@ typedef struct{
 typedef struct{
     uint8_t cmd_type;
     uint8_t cmd_num;
-    long    x_param;
-    long    y_param;
-    long    z_param;
+    float    x_param;
+    float    y_param;
+    float    z_param;
     uint8_t f_param;
-    uint8_t r_param;
+    float r_param;
 }command_t;
+
+command_t command;
 
 void StepX(long point, uint8_t speed, uint8_t dir);
 void StepY(long point, uint8_t speed, uint8_t dir);
 void StepZ(long point, uint8_t speed, uint8_t dir);
 
 coordinates_t current_position = {0,0,0,0,0,0,0,0,0};
-command_t command;
 
 const char *sep_tok = " ";
 
@@ -83,41 +84,49 @@ void putch(char data){
     while(!TXIF) continue;
     TXREG = data;
 }
-
-long _atol(char *data){
-    long ret=0;
+/*
+double _atol(char *data){
+    double ret=0;
+    long part1=0;
+    long part2=0;
     bool neg = false;
-    uint8_t sym_cnt=0;
+    bool dec = false;
+    uint8_t dec_cnt=0;
+    uint8_t i=0;
     while(*data!=NULL){
         switch(data[0]){
-            case '-' : if(sym_cnt==0){
+            case '.' : if(dec) return NULL;
+                        dec = true;
+                        break;
+            case '-' : if(neg) return NULL;
                             neg = true;
-                            sym_cnt++;
                             break;
-                        } else return NULL;
-            case '0' : ret = (ret*10)+0; break;
-            case '1' : ret = (ret*10)+1; break;
-            case '2' : ret = (ret*10)+2; break;
-            case '3' : ret = (ret*10)+3; break;
-            case '4' : ret = (ret*10)+4; break;
-            case '5' : ret = (ret*10)+5; break;
-            case '6' : ret = (ret*10)+6; break;
-            case '7' : ret = (ret*10)+7; break;
-            case '8' : ret = (ret*10)+8; break;
-            case '9' : ret = (ret*10)+9; break;
+            case '0' : if(!dec) part1 = (part1*10)+0; else { part2 = (part2*10)+0; dec_cnt++;} break;
+            case '1' : if(!dec) part1 = (part1*10)+1; else { part2 = (part2*10)+1; dec_cnt++;} break;
+            case '2' : if(!dec) part1 = (part1*10)+2; else { part2 = (part2*10)+2; dec_cnt++;} break;
+            case '3' : if(!dec) part1 = (part1*10)+3; else { part2 = (part2*10)+3; dec_cnt++;} break;
+            case '4' : if(!dec) part1 = (part1*10)+4; else { part2 = (part2*10)+4; dec_cnt++;} break;
+            case '5' : if(!dec) part1 = (part1*10)+5; else { part2 = (part2*10)+5; dec_cnt++;} break;
+            case '6' : if(!dec) part1 = (part1*10)+6; else { part2 = (part2*10)+6; dec_cnt++;} break;
+            case '7' : if(!dec) part1 = (part1*10)+7; else { part2 = (part2*10)+7; dec_cnt++;} break;
+            case '8' : if(!dec) part1 = (part1*10)+8; else { part2 = (part2*10)+8; dec_cnt++;} break;
+            case '9' : if(!dec) part1 = (part1*10)+9; else { part2 = (part2*10)+9; dec_cnt++;} break;
             default : return NULL;
         }
         *data++;
     }
+    long div = 0;
+    for(i=0;i<dec_cnt;i++) div *= 10;
+    ret = (double)part1 + ((double)part2/div);
     if(neg) return ret*-1;
     else return ret;
 }
-
+*/
 void G01(char *x_str,char *y_str,char *speed_str){
-    long x=_atol(x_str);
-    long y=_atol(y_str);
-    uint8_t speed = (int)_atol(speed_str);
-    printf("\nGoing to %d,%d,%d\r\n",x, y, speed);
+    //long x=_atol(x_str);
+    //long y=_atol(y_str);
+    //uint8_t speed = (int)_atol(speed_str);
+    //printf("\nGoing to %d,%d,%d\r\n",x, y, speed);
 //    if(b.x != current_position.x && b.y == current_position.y)
 //        StepX(b.x,speed,1);
 //    else if (b.x == current_position.x && b.y != current_position.y)
@@ -209,21 +218,15 @@ void StepZ(long point, uint8_t speed, uint8_t dir){
 }
 
 void cncCommand(){
-    int i=0;
-    //coordinates_t dest;
-    /*
-    if(strncmp(params[0],"G01",3)==0){
-        //dest.x = atol(&params[1][1]);
-        //dest.y = atol(&params[2][1]);
-        //G01(atol(&params[1][1]),atol(&params[2][1]),atoi(&params[3][1]));
-        G01(&params[1][1], &params[2][1],&params[3][1]);
-    }
     
-    for(i=0;i<num_param-1;i++){
-        printf("Param %d - %s\n",i,params[i]);
-    }
-    */
-    
+    printf("\npoints %.4f\n",command.x_param);
+    //if(command.cmd_type == 'G'){
+    //    switch(command.cmd_num){
+    //        case 1 : break;
+    //        case 2 : break;
+    //        default: break;
+    //    }
+    //}
 }
 
 void parseCMD(char *buffer){
@@ -236,16 +239,16 @@ void parseCMD(char *buffer){
     else if (*buffer == 'G'){
         ptr = strtok(buffer,sep_tok);
         command.cmd_type = ptr[0];
-        command.cmd_num = (uint8_t)_atol(ptr+1);
+        command.cmd_num = atoi(ptr+1);
         p_cnt++;
         while(ptr !=NULL){
             ptr = strtok(NULL,sep_tok);
             switch(ptr[0]){
-                case 'X' : command.x_param = _atol(ptr+1); break; 
-                case 'Y' : command.y_param = _atol(ptr+1); break;
-                case 'Z' : command.z_param = _atol(ptr+1); break;
-                case 'F' : command.f_param = (uint8_t)_atol(ptr+1); break;
-                case 'R' : command.r_param = (uint8_t)_atol(ptr+1); break;
+                case 'X' : command.x_param = atof(ptr+1); break; 
+                case 'Y' : command.y_param = atof(ptr+1); break;
+                case 'Z' : command.z_param = atof(ptr+1); break;
+                case 'F' : command.f_param = atoi(ptr+1); break;
+                case 'R' : command.r_param = atof(ptr+1); break;
                 default : break;
             }
         }

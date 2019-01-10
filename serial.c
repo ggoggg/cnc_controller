@@ -13,7 +13,7 @@ int UART_Init(const long int baudrate)
   if(x<256)
   {
     SPBRG = x;                                    //Writing SPBRG Register
-    TRISC7 = 1; 
+    //TRISC7 = 1; 
     
 //    BRGH = 1;
 //    BRG16 = 1;
