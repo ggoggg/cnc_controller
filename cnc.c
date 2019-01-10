@@ -4,19 +4,19 @@
  *
  * Created on January 4, 2019, 12:05 AM
  */
+#define _XTAL_FREQ 20000000
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <xc.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <string.h>
 #include "lcd.h"
-#define _XTAL_FREQ 20000000
-
-
+#include "serial.h"
 
 // BEGIN CONFIG
-#pragma config FOSC = XT // Oscillator Selection bits (HS oscillator)
+#pragma config FOSC = HS // Oscillator Selection bits (HS oscillator)
 #pragma config WDTE = OFF // Watchdog Timer Enable bit (WDT enabled)
 #pragma config PWRTE = OFF // Power-up Timer Enable bit (PWRT disabled)
 #pragma config BOREN = OFF // Brown-out Reset Enable bit (BOR enabled)
@@ -51,14 +51,27 @@ typedef struct{
     bool ylimit_min;
     bool zlimit_max;
     bool zlimit_min;
-
 }coordinates_t;
+
+typedef struct{
+    uint8_t cmd_type;
+    uint8_t cmd_num;
+    float    x_param;
+    float    y_param;
+    float    z_param;
+    uint8_t f_param;
+    float r_param;
+}command_t;
+
+command_t command;
 
 void StepX(long point, uint8_t speed, uint8_t dir);
 void StepY(long point, uint8_t speed, uint8_t dir);
 void StepZ(long point, uint8_t speed, uint8_t dir);
 
 coordinates_t current_position = {0,0,0,0,0,0,0,0,0};
+
+const char *sep_tok = " ";
 
 void delay_us(unsigned int val){
     while(val > 0){
@@ -67,14 +80,60 @@ void delay_us(unsigned int val){
     }
 }
 
-void G01(coordinates_t b,uint8_t speed){
-    if(b.x != current_position.x && b.y == current_position.y)
-        StepX(b.x,speed,1);
-    else if (b.x == current_position.x && b.y != current_position.y)
-        StepY(b.y,speed,1);
-    else {
-    
+void putch(char data){
+    while(!TXIF) continue;
+    TXREG = data;
+}
+/*
+double _atol(char *data){
+    double ret=0;
+    long part1=0;
+    long part2=0;
+    bool neg = false;
+    bool dec = false;
+    uint8_t dec_cnt=0;
+    uint8_t i=0;
+    while(*data!=NULL){
+        switch(data[0]){
+            case '.' : if(dec) return NULL;
+                        dec = true;
+                        break;
+            case '-' : if(neg) return NULL;
+                            neg = true;
+                            break;
+            case '0' : if(!dec) part1 = (part1*10)+0; else { part2 = (part2*10)+0; dec_cnt++;} break;
+            case '1' : if(!dec) part1 = (part1*10)+1; else { part2 = (part2*10)+1; dec_cnt++;} break;
+            case '2' : if(!dec) part1 = (part1*10)+2; else { part2 = (part2*10)+2; dec_cnt++;} break;
+            case '3' : if(!dec) part1 = (part1*10)+3; else { part2 = (part2*10)+3; dec_cnt++;} break;
+            case '4' : if(!dec) part1 = (part1*10)+4; else { part2 = (part2*10)+4; dec_cnt++;} break;
+            case '5' : if(!dec) part1 = (part1*10)+5; else { part2 = (part2*10)+5; dec_cnt++;} break;
+            case '6' : if(!dec) part1 = (part1*10)+6; else { part2 = (part2*10)+6; dec_cnt++;} break;
+            case '7' : if(!dec) part1 = (part1*10)+7; else { part2 = (part2*10)+7; dec_cnt++;} break;
+            case '8' : if(!dec) part1 = (part1*10)+8; else { part2 = (part2*10)+8; dec_cnt++;} break;
+            case '9' : if(!dec) part1 = (part1*10)+9; else { part2 = (part2*10)+9; dec_cnt++;} break;
+            default : return NULL;
+        }
+        *data++;
     }
+    long div = 0;
+    for(i=0;i<dec_cnt;i++) div *= 10;
+    ret = (double)part1 + ((double)part2/div);
+    if(neg) return ret*-1;
+    else return ret;
+}
+*/
+void G01(char *x_str,char *y_str,char *speed_str){
+    //long x=_atol(x_str);
+    //long y=_atol(y_str);
+    //uint8_t speed = (int)_atol(speed_str);
+    //printf("\nGoing to %d,%d,%d\r\n",x, y, speed);
+//    if(b.x != current_position.x && b.y == current_position.y)
+//        StepX(b.x,speed,1);
+//    else if (b.x == current_position.x && b.y != current_position.y)
+//        StepY(b.y,speed,1);
+//    else {
+    
+//    }
 }
 
 void GotoX(signed long point,uint8_t speed){
@@ -158,13 +217,60 @@ void StepZ(long point, uint8_t speed, uint8_t dir){
     }    
 }
 
+void cncCommand(){
+    
+    printf("\npoints %.4f\n",command.x_param);
+    //if(command.cmd_type == 'G'){
+    //    switch(command.cmd_num){
+    //        case 1 : break;
+    //        case 2 : break;
+    //        default: break;
+    //    }
+    //}
+}
+
+void parseCMD(char *buffer){
+    int p_cnt=0;
+    char *ptr;
+    memset(&command,0,sizeof(command));
+    if(*buffer == '?'){
+        printf("Current Position: X-%d Y-%d\r\n>",current_position.x,current_position.y);
+    }
+    else if (*buffer == 'G'){
+        ptr = strtok(buffer,sep_tok);
+        command.cmd_type = ptr[0];
+        command.cmd_num = atoi(ptr+1);
+        p_cnt++;
+        while(ptr !=NULL){
+            ptr = strtok(NULL,sep_tok);
+            switch(ptr[0]){
+                case 'X' : command.x_param = atof(ptr+1); break; 
+                case 'Y' : command.y_param = atof(ptr+1); break;
+                case 'Z' : command.z_param = atof(ptr+1); break;
+                case 'F' : command.f_param = atoi(ptr+1); break;
+                case 'R' : command.r_param = atof(ptr+1); break;
+                default : break;
+            }
+        }
+        cncCommand();
+    }
+}
+
 void main(void) {
+    
+//    OSCCONbits.OSTS = 1;
+//    OSCCONbits.SCS = 0;
+    
     char str[16] = {0};
-    __delay_ms(500);
+    char rxbuff[32] = {0};
+//    unsigned char rxbyte[1] = {0};
+    __delay_ms(1000);
     
     ANSEL = 0;
     PORTA = 0;
     TRISA = 0xFF;
+    GIE = 0;
+    
     
     ANSELH = 0;
     IOCB = 0;
@@ -174,10 +280,18 @@ void main(void) {
     PORTB = 0;
     TRISB = 1;
     
+    
+    PORTC = 0;
+    TRISC = 0xff;    
+    
     LCD_Init();  /*Initialize LCD to 5*8 matrix in 4-bit mode*/
     LCD_Clear();
     
     LCD_String_xy(1,0,"HELLO"); /*Display string on 2nd row,1st location*/ 
+    
+    UART_Init(9600);    
+    printf("System is Ready!\r\n>");
+    
     LCD_String_xy(2,0,"POS X: ");
     LCD_String_xy(3,0,"POS Y: ");
     LCD_String_xy(4,0,"POS Z: ");
@@ -195,6 +309,27 @@ void main(void) {
     to.z = 10;
     
     //G01(to,100);
+    //UART_Read();
+      int cnt=0; 
+      int i;
+    while(1){
+        while(!RCIF) NOP();
+        rxbuff[cnt] = RCREG;
+        UART_Write(rxbuff[cnt]);
+        if(rxbuff[cnt]==0x0d || rxbuff[cnt]==0x0a || cnt>32) {
+            rxbuff[cnt] = 0;
+            __delay_ms(10);
+            LCD_String_xy(1,1,rxbuff);
+            cnt=0;
+            parseCMD(rxbuff);
+            memset(rxbuff,0,sizeof(rxbuff));
+        }
+        else {
+             cnt++;
+        }
+    }
+    
+    
     while(1){
         if(!PORTBbits.RB0){
             //StepX(10000,100,0);
